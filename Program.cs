@@ -1,13 +1,16 @@
-using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Intro;
 
 var builder = WebApplication.CreateBuilder(args);
 
+string connectionString = builder.Configuration.GetConnectionString("AZURE_SQL_CONNECTIONSTRING")!;
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddDbContext<PRailContext>(options =>
+    options.UseSqlServer(connectionString));
 
 var app = builder.Build();
-
-string connectionString = app.Configuration.GetConnectionString("AZURE_SQL_CONNECTIONSTRING")!;
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -23,27 +26,17 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+app.MapControllers();
+
+app.MapControllerRoute(
+    name: "customer",
+    pattern: "Customer",
+    defaults: new { controller = "Customer", action = "Get" });
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
-
-using (SqlConnection connection = new SqlConnection(connectionString))
-{
-    connection.Open();
-    string sql = "SELECT Top 10 * FROM Customer";
-    using (SqlCommand command = new SqlCommand(sql, connection))
-    {
-        using (SqlDataReader reader = command.ExecuteReader())
-        {
-            while (reader.Read())
-            {
-                Console.WriteLine($"{reader["CustomerId"]} {reader["CustomerName"].ToString()}");
-            }
-        }
-    }
-}
 
 Console.WriteLine("Here we go!");
 
